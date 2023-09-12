@@ -207,7 +207,7 @@ func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts
 		if err != nil {
 			return err
 		}
-		cr := newChunkReader()
+		cr := newChunkReader(req.GetReversed())
 		for {
 			res, err := stream.Recv()
 			if err == io.EOF {

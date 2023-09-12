@@ -34,90 +34,112 @@ import (
 const nilStr = "<>"
 
 func TestSingleCell(t *testing.T) {
-	cr := newChunkReader()
+	crs := []*chunkReader{
+		newChunkReader(true),
+		newChunkReader(false),
+	}
 
-	// All in one cell
-	row, err := cr.Process(cc("rk", "fm", "col", 1, "value", 0, true, []string{}))
-	if err != nil {
-		t.Fatalf("Processing chunk: %v", err)
-	}
-	if row == nil {
-		t.Fatalf("Missing row")
-	}
-	if len(row["fm"]) != 1 {
-		t.Fatalf("Family name length mismatch %d, %d", 1, len(row["fm"]))
-	}
-	want := []ReadItem{ri("rk", "fm", "col", 1, "value", []string{})}
-	if !testutil.Equal(row["fm"], want) {
-		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm"], want)
-	}
-	if err := cr.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
+	for i, cr := range crs {
+		t.Run(fmt.Sprint("#", i), func(t *testing.T) {
+			// All in one cell
+			row, err := cr.Process(cc("rk", "fm", "col", 1, "value", 0, true, []string{}))
+			if err != nil {
+				t.Fatalf("Processing chunk: %v", err)
+			}
+			if row == nil {
+				t.Fatalf("Missing row")
+			}
+			if len(row["fm"]) != 1 {
+				t.Fatalf("Family name length mismatch %d, %d", 1, len(row["fm"]))
+			}
+			want := []ReadItem{ri("rk", "fm", "col", 1, "value", []string{})}
+			if !testutil.Equal(row["fm"], want) {
+				t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm"], want)
+			}
+			if err := cr.Close(); err != nil {
+				t.Fatalf("Close: %v", err)
+			}
+		})
 	}
 }
 
 func TestMultipleCells(t *testing.T) {
-	cr := newChunkReader()
-
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false, []string{}))
-	mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false, []string{}))
-	mustProcess(t, cr, cc("rs", "fm2", "col1", 0, "val4", 0, false, []string{}))
-	row, err := cr.Process(cc("rs", "fm2", "col2", 1, "extralongval5", 0, true, []string{}))
-	if err != nil {
-		t.Fatalf("Processing chunk: %v", err)
-	}
-	if row == nil {
-		t.Fatalf("Missing row")
+	crs := []*chunkReader{
+		newChunkReader(true),
+		newChunkReader(false),
 	}
 
-	want := []ReadItem{
-		ri("rs", "fm1", "col1", 0, "val1", []string{}),
-		ri("rs", "fm1", "col1", 1, "val2", []string{}),
-		ri("rs", "fm1", "col2", 0, "val3", []string{}),
-	}
-	if !testutil.Equal(row["fm1"], want) {
-		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
-	}
-	want = []ReadItem{
-		ri("rs", "fm2", "col1", 0, "val4", []string{}),
-		ri("rs", "fm2", "col2", 1, "extralongval5", []string{}),
-	}
-	if !testutil.Equal(row["fm2"], want) {
-		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
-	}
-	if err := cr.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
+	for i, cr := range crs {
+		t.Run(fmt.Sprint("#", i), func(t *testing.T) {
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false, []string{}))
+			mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false, []string{}))
+			mustProcess(t, cr, cc("rs", "fm2", "col1", 0, "val4", 0, false, []string{}))
+			row, err := cr.Process(cc("rs", "fm2", "col2", 1, "extralongval5", 0, true, []string{}))
+			if err != nil {
+				t.Fatalf("Processing chunk: %v", err)
+			}
+			if row == nil {
+				t.Fatalf("Missing row")
+			}
+
+			want := []ReadItem{
+				ri("rs", "fm1", "col1", 0, "val1", []string{}),
+				ri("rs", "fm1", "col1", 1, "val2", []string{}),
+				ri("rs", "fm1", "col2", 0, "val3", []string{}),
+			}
+			if !testutil.Equal(row["fm1"], want) {
+				t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+			}
+			want = []ReadItem{
+				ri("rs", "fm2", "col1", 0, "val4", []string{}),
+				ri("rs", "fm2", "col2", 1, "extralongval5", []string{}),
+			}
+			if !testutil.Equal(row["fm2"], want) {
+				t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
+			}
+			if err := cr.Close(); err != nil {
+				t.Fatalf("Close: %v", err)
+			}
+		})
 	}
 }
 
 func TestSplitCells(t *testing.T) {
-	cr := newChunkReader()
-
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "hello ", 11, false, []string{}))
-	mustProcess(t, cr, ccData("world", 0, false))
-	row, err := cr.Process(cc("rs", "fm1", "col2", 0, "val2", 0, true, []string{}))
-	if err != nil {
-		t.Fatalf("Processing chunk: %v", err)
-	}
-	if row == nil {
-		t.Fatalf("Missing row")
+	crs := []*chunkReader{
+		newChunkReader(true),
+		newChunkReader(false),
 	}
 
-	want := []ReadItem{
-		ri("rs", "fm1", "col1", 0, "hello world", []string{}),
-		ri("rs", "fm1", "col2", 0, "val2", []string{}),
-	}
-	if !testutil.Equal(row["fm1"], want) {
-		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
-	}
-	if err := cr.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
+	for i, cr := range crs {
+		t.Run(fmt.Sprint("#", i), func(t *testing.T) {
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "hello ", 11, false, []string{}))
+			mustProcess(t, cr, ccData("world", 0, false))
+			row, err := cr.Process(cc("rs", "fm1", "col2", 0, "val2", 0, true, []string{}))
+			if err != nil {
+				t.Fatalf("Processing chunk: %v", err)
+			}
+			if row == nil {
+				t.Fatalf("Missing row")
+			}
+
+			want := []ReadItem{
+				ri("rs", "fm1", "col1", 0, "hello world", []string{}),
+				ri("rs", "fm1", "col2", 0, "val2", []string{}),
+			}
+			if !testutil.Equal(row["fm1"], want) {
+				t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+			}
+			if err := cr.Close(); err != nil {
+				t.Fatalf("Close: %v", err)
+			}
+		})
 	}
 }
 
 func TestMultipleRows(t *testing.T) {
-	cr := newChunkReader()
+	reversedScan := false
+	cr := newChunkReader(reversedScan)
 
 	row, err := cr.Process(cc("rs1", "fm1", "col1", 1, "val1", 0, true, []string{}))
 	if err != nil {
@@ -142,8 +164,45 @@ func TestMultipleRows(t *testing.T) {
 	}
 }
 
+func TestReverseScanMultipleRows(t *testing.T) {
+	reversedScan := true
+	cr := newChunkReader(reversedScan)
+
+	row, err := cr.Process(cc("rs3", "fm3", "col3", 3, "val3", 0, true, []string{}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want := []ReadItem{ri("rs3", "fm3", "col3", 3, "val3", []string{})}
+	if !testutil.Equal(row["fm3"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
+	}
+
+	row, err = cr.Process(cc("rs2", "fm2", "col2", 2, "val2", 0, true, []string{}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want = []ReadItem{ri("rs2", "fm2", "col2", 2, "val2", []string{})}
+	if !testutil.Equal(row["fm2"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
+	}
+
+	row, err = cr.Process(cc("rs1", "fm1", "col1", 1, "val1", 0, true, []string{}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want = []ReadItem{ri("rs1", "fm1", "col1", 1, "val1", []string{})}
+	if !testutil.Equal(row["fm1"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+	}
+
+	if err := cr.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+}
+
 func TestBlankQualifier(t *testing.T) {
-	cr := newChunkReader()
+	reversedScan := false
+	cr := newChunkReader(reversedScan)
 
 	row, err := cr.Process(cc("rs1", "fm1", "", 1, "val1", 0, true, []string{}))
 	if err != nil {
@@ -168,8 +227,36 @@ func TestBlankQualifier(t *testing.T) {
 	}
 }
 
+func TestReverseScanBlankQualifier(t *testing.T) {
+	reversedScan := true
+	cr := newChunkReader(reversedScan)
+
+	row, err := cr.Process(cc("rs2", "fm2", "col2", 2, "val2", 0, true, []string{}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want := []ReadItem{ri("rs2", "fm2", "col2", 2, "val2", []string{})}
+	if !testutil.Equal(row["fm2"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
+	}
+
+	row, err = cr.Process(cc("rs1", "fm1", "", 1, "val1", 0, true, []string{}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want = []ReadItem{ri("rs1", "fm1", "", 1, "val1", []string{})}
+	if !testutil.Equal(row["fm1"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+	}
+
+	if err := cr.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+}
+
 func TestLabels(t *testing.T) {
-	cr := newChunkReader()
+	reversedScan := false
+	cr := newChunkReader(reversedScan)
 
 	mustProcess(t, cr, cc("rs1", "fm1", "col1", 0, "hello ", 11, false, []string{"test-label"}))
 	row := mustProcess(t, cr, ccData("world", 0, true))
@@ -194,29 +281,71 @@ func TestLabels(t *testing.T) {
 	}
 }
 
-func TestReset(t *testing.T) {
-	cr := newChunkReader()
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false, []string{}))
-	mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false, []string{}))
-	mustProcess(t, cr, ccReset())
-	row := mustProcess(t, cr, cc("rs1", "fm1", "col1", 1, "val1", 0, true, []string{}))
-	want := []ReadItem{ri("rs1", "fm1", "col1", 1, "val1", []string{})}
-	if !testutil.Equal(row["fm1"], want) {
-		t.Fatalf("Reset: got: %v\nwant: %v\n", row["fm1"], want)
+func TestReverseScanLabels(t *testing.T) {
+	reversedScan := true
+	cr := newChunkReader(reversedScan)
+
+	mustProcess(t, cr, cc("rs2", "fm1", "col1", 0, "hello ", 11, false, []string{"test-label2"}))
+	row := mustProcess(t, cr, ccData("world", 0, true))
+	want := []ReadItem{
+		ri("rs2", "fm1", "col1", 0, "hello world", []string{"test-label2"}),
 	}
+	if !testutil.Equal(row["fm1"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+	}
+
+	row, err := cr.Process(cc("rs1", "fm1", "", 1, "val1", 0, true, []string{"test-label"}))
+	if err != nil {
+		t.Fatalf("Processing chunk: %v", err)
+	}
+	want = []ReadItem{ri("rs1", "fm1", "", 1, "val1", []string{"test-label"})}
+	if !testutil.Equal(row["fm1"], want) {
+		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
+	}
+
 	if err := cr.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
 }
 
-func TestNewFamEmptyQualifier(t *testing.T) {
-	cr := newChunkReader()
+func TestReset(t *testing.T) {
+	crs := []*chunkReader{
+		newChunkReader(true),
+		newChunkReader(false),
+	}
 
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
-	_, err := cr.Process(cc(nilStr, "fm2", nilStr, 0, "val2", 0, true, []string{}))
-	if err == nil {
-		t.Fatalf("Expected error on second chunk with no qualifier set")
+	for i, cr := range crs {
+		t.Run(fmt.Sprint("#", i), func(t *testing.T) {
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false, []string{}))
+			mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false, []string{}))
+			mustProcess(t, cr, ccReset())
+			row := mustProcess(t, cr, cc("rs1", "fm1", "col1", 1, "val1", 0, true, []string{}))
+			want := []ReadItem{ri("rs1", "fm1", "col1", 1, "val1", []string{})}
+			if !testutil.Equal(row["fm1"], want) {
+				t.Fatalf("Reset: got: %v\nwant: %v\n", row["fm1"], want)
+			}
+			if err := cr.Close(); err != nil {
+				t.Fatalf("Close: %v", err)
+			}
+		})
+	}
+}
+
+func TestNewFamEmptyQualifier(t *testing.T) {
+	crs := []*chunkReader{
+		newChunkReader(true),
+		newChunkReader(false),
+	}
+
+	for i, cr := range crs {
+		t.Run(fmt.Sprint("#", i), func(t *testing.T) {
+			mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false, []string{}))
+			_, err := cr.Process(cc(nilStr, "fm2", nilStr, 0, "val2", 0, true, []string{}))
+			if err == nil {
+				t.Fatalf("Expected error on second chunk with no qualifier set")
+			}
+		})
 	}
 }
 
@@ -269,7 +398,8 @@ func TestAcceptance(t *testing.T) {
 
 func runTestCase(t *testing.T, test TestCase) {
 	// Increment an index into the result array as we get results
-	cr := newChunkReader()
+	reversedScan := false
+	cr := newChunkReader(reversedScan)
 	var results []TestResult
 	var seenErr bool
 	for _, chunkText := range test.Chunks {
@@ -374,5 +504,6 @@ func ccData(val string, size int32, commit bool) *btspb.ReadRowsResponse_CellChu
 // ccReset returns a CellChunk with RestRow set to true
 func ccReset() *btspb.ReadRowsResponse_CellChunk {
 	return &btspb.ReadRowsResponse_CellChunk{
-		RowStatus: &btspb.ReadRowsResponse_CellChunk_ResetRow{ResetRow: true}}
+		RowStatus: &btspb.ReadRowsResponse_CellChunk_ResetRow{ResetRow: true},
+	}
 }
