@@ -577,6 +577,14 @@ func (wrs withFullReadStats) set(settings *readSettings) {
 	settings.fullReadStatsFunc = wrs.f
 }
 
+// ReverseScan returns a ReadOption that will request rows in lexiographical descending order of the row keys.
+// This is experimental and can change in the future. The row contents will not be affected by this flag.
+func ReverseScan(reversed bool) ReadOption { return reverseScan{reversed} }
+
+type reverseScan struct{ reversed bool }
+
+func (rs reverseScan) set(settings *readSettings) { settings.req.Reversed = rs.reversed }
+
 // mutationsAreRetryable returns true if all mutations are idempotent
 // and therefore retryable. A mutation is idempotent iff all cell timestamps
 // have an explicit timestamp set and do not rely on the timestamp being set on the server.
