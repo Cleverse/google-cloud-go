@@ -67,11 +67,15 @@ type chunkReader struct {
 	curVal    []byte
 	curRow    Row
 	lastKey   string
+	reversed  bool
 }
 
 // newChunkReader returns a new chunkReader for handling read rows responses.
-func newChunkReader() *chunkReader {
-	return &chunkReader{state: newRow}
+func newChunkReader(reversed bool) *chunkReader {
+	return &chunkReader{
+		state:    newRow,
+		reversed: reversed,
+	}
 }
 
 // Process takes a cell chunk and returns a new Row if the given chunk
@@ -200,8 +204,11 @@ func (cr *chunkReader) validateNewRow(cc *btpb.ReadRowsResponse_CellChunk) error
 	if cc.RowKey == nil || cc.FamilyName == nil || cc.Qualifier == nil {
 		return fmt.Errorf("missing key field for new row %v", cc)
 	}
-	if cr.lastKey != "" && cr.lastKey >= string(cc.RowKey) {
-		return fmt.Errorf("out of order row key: %q, %q", cr.lastKey, string(cc.RowKey))
+	if cr.lastKey != "" {
+		rowKey := string(cc.RowKey)
+		if (cr.reversed && cr.lastKey <= rowKey) || (!cr.reversed && cr.lastKey >= rowKey) {
+			return fmt.Errorf("out of order row key: %q, %q", cr.lastKey, rowKey)
+		}
 	}
 	return nil
 }

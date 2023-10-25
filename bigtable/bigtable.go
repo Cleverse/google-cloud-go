@@ -207,7 +207,7 @@ func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts
 		if err != nil {
 			return err
 		}
-		cr := newChunkReader()
+		cr := newChunkReader(req.GetReversed())
 		for {
 			res, err := stream.Recv()
 			if err == io.EOF {
@@ -576,6 +576,14 @@ func (wrs withFullReadStats) set(settings *readSettings) {
 	settings.req.RequestStatsView = btpb.ReadRowsRequest_REQUEST_STATS_FULL
 	settings.fullReadStatsFunc = wrs.f
 }
+
+// ReverseScan returns a ReadOption that will request rows in lexiographical descending order of the row keys.
+// This is experimental and can change in the future. The row contents will not be affected by this flag.
+func ReverseScan(reversed bool) ReadOption { return reverseScan{reversed} }
+
+type reverseScan struct{ reversed bool }
+
+func (rs reverseScan) set(settings *readSettings) { settings.req.Reversed = rs.reversed }
 
 // mutationsAreRetryable returns true if all mutations are idempotent
 // and therefore retryable. A mutation is idempotent iff all cell timestamps
