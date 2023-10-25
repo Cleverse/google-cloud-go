@@ -27,6 +27,7 @@ modules:
   - channel
   - cloudbuild
   - clouddms
+  - cloudquotas
   - cloudtasks
   - commerce
   - compute
@@ -108,6 +109,7 @@ modules:
   - run
   - scheduler
   - secretmanager
+  - securesourcemanager
   - security
   - securitycenter
   - servicecontrol
@@ -116,6 +118,7 @@ modules:
   - servicemanagement
   - serviceusage
   - shell
+  - shopping
   - spanner
   - speech
   - storage
@@ -303,9 +306,16 @@ service-configs:
   - input-directory: google/cloud/alloydb/v1beta
     service-config: alloydb_v1beta.yaml
     import-path: cloud.google.com/go/alloydb/apiv1beta
+  - input-directory: google/cloud/alloydb/connectors/v1
+    service-config: connectors_v1.yaml
+    import-path: cloud.google.com/go/alloydb/connectors/apiv1
+    release-level-override: preview
   - input-directory: google/cloud/alloydb/connectors/v1alpha
     service-config: connectors_v1alpha.yaml
     import-path: cloud.google.com/go/alloydb/connectors/apiv1alpha
+  - input-directory: google/cloud/alloydb/connectors/v1beta
+    service-config: connectors_v1beta.yaml
+    import-path: cloud.google.com/go/alloydb/connectors/apiv1beta
   - input-directory: google/cloud/apigateway/v1
     service-config: apigateway_v1.yaml
     import-path: cloud.google.com/go/apigateway/apiv1
@@ -426,6 +436,9 @@ service-configs:
   - input-directory: google/cloud/clouddms/v1
     service-config: datamigration_v1.yaml
     import-path: cloud.google.com/go/clouddms/apiv1
+  - input-directory: google/cloud/cloudquotas/v1
+    service-config: cloudquotas_v1.yaml
+    import-path: cloud.google.com/go/cloudquotas/apiv1
   - input-directory: google/cloud/commerce/consumer/procurement/v1
     service-config: cloudcommerceconsumerprocurement_v1.yaml
     import-path: cloud.google.com/go/commerce/consumer/procurement/apiv1
@@ -729,6 +742,9 @@ service-configs:
   - input-directory: google/cloud/secretmanager/v1
     service-config: secretmanager_v1.yaml
     import-path: cloud.google.com/go/secretmanager/apiv1
+  - input-directory: google/cloud/securesourcemanager/v1
+    service-config: securesourcemanager_v1.yaml
+    import-path: cloud.google.com/go/securesourcemanager/apiv1
   - input-directory: google/cloud/security/privateca/v1
     service-config: privateca_v1.yaml
     import-path: cloud.google.com/go/security/privateca/apiv1
@@ -759,6 +775,12 @@ service-configs:
   - input-directory: google/cloud/shell/v1
     service-config: cloudshell_v1.yaml
     import-path: cloud.google.com/go/shell/apiv1
+  - input-directory: google/shopping/merchant/inventories/v1beta
+    service-config: merchantapi_v1beta.yaml
+    import-path: cloud.google.com/go/shopping/merchant/inventories/apiv1beta
+  - input-directory: google/shopping/type
+    service-config:
+    import-path: cloud.google.com/go/shopping/type
   - input-directory: google/cloud/speech/v1
     service-config: speech_v1.yaml
     import-path: cloud.google.com/go/speech/apiv1
@@ -929,6 +951,12 @@ service-configs:
   - input-directory: google/maps/addressvalidation/v1
     service-config: addressvalidation_v1.yaml
     import-path: cloud.google.com/go/maps/addressvalidation/apiv1
+  - input-directory: google/maps/fleetengine/v1
+    service-config: fleetengine_v1.yaml
+    import-path: cloud.google.com/go/maps/fleetengine/apiv1
+  - input-directory: google/maps/fleetengine/delivery/v1
+    service-config: fleetengine_v1.yaml
+    import-path: cloud.google.com/go/maps/fleetengine/delivery/apiv1
   - input-directory: google/maps/mapsplatformdatasets/v1alpha
     service-config: mapsplatformdatasets_v1alpha.yaml
     import-path: cloud.google.com/go/maps/mapsplatformdatasets/apiv1alpha
@@ -969,10 +997,11 @@ service-configs:
     service-config: storagetransfer_v1.yaml
     import-path: cloud.google.com/go/storagetransfer/apiv1
     # All entries below are clients that are not currently copied by owlbot. They
-    # explicitly express thier import path for some code gen.
+    # explicitly express their import path for some code gen.
   - input-directory: google/devtools/containeranalysis/v1beta1/grafeas
     service-config: ../containeranalysis_v1beta1.yaml
     import-path: cloud.google.com/go/containeranalysis/apiv1beta1
+    rel-path: /containeranalysis/apiv1beta1
   - input-directory: google/cloud/video/stitcher/v1
     service-config: videostitcher_v1.yaml
     import-path: cloud.google.com/go/video/stitcher/apiv1
