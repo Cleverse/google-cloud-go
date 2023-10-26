@@ -203,6 +203,12 @@ func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts
 		defer cancel()
 
 		startTime := time.Now()
+		var stats FullReadStats
+		defer func() {
+			stats.RequestLatencyStats.ClientsideLatency = time.Since(startTime)
+			settings.fullReadStatsFunc(&stats)
+		}()
+
 		stream, err := t.c.client.ReadRows(ctx, req)
 		if err != nil {
 			return err
@@ -255,8 +261,7 @@ func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts
 
 			// Handle any incoming RequestStats. This should happen at most once.
 			if res.RequestStats != nil && settings.fullReadStatsFunc != nil {
-				stats := makeFullReadStats(res.RequestStats)
-				settings.fullReadStatsFunc(&stats)
+				stats = makeFullReadStats(res.RequestStats)
 			}
 
 			if err := cr.Close(); err != nil {
@@ -499,6 +504,10 @@ type RequestLatencyStats struct {
 	// received, to when this value is sent back in the response. For more context on the component
 	// that is measuring this latency, see: https://cloud.google.com/bigtable/docs/overview
 	FrontendServerLatency time.Duration
+
+	// The latency measured by the client sending this request, from when the request was sent, to
+	// when the request completed sending. This value is always non-zero.
+	ClientsideLatency time.Duration
 }
 
 // FullReadStats captures all known information about a read.
