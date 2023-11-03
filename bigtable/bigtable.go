@@ -205,8 +205,10 @@ func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts
 		startTime := time.Now()
 		var stats FullReadStats
 		defer func() {
-			stats.RequestLatencyStats.ClientsideLatency = time.Since(startTime)
-			settings.fullReadStatsFunc(&stats)
+			if settings.fullReadStatsFunc != nil {
+				stats.RequestLatencyStats.ClientsideLatency = time.Since(startTime)
+				settings.fullReadStatsFunc(&stats)
+			}
 		}()
 
 		stream, err := t.c.client.ReadRows(ctx, req)
